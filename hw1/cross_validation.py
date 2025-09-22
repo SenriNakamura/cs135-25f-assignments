@@ -100,14 +100,28 @@ def train_models_and_calc_scores_for_n_fold_cv(
         Entry f gives the error computed for test set for fold f
 
     '''
-    train_error_per_fold = np.zeros(n_folds, dtype=np.float32)
-    test_error_per_fold = np.zeros(n_folds, dtype=np.float32)
+   
+    x_NF = np.asarray(x_NF, dtype=np.float32)  
+    y_N = np.asarray(y_N, dtype=np.float32)
 
-    # TODO define the folds here by calling your function
-    # e.g. ... = make_train_and_test_row_ids_for_n_fold_cv(...)
+    tr_ids_K, te_ids_K = make_train_and_test_row_ids_for_n_fold_cv(
+        n_examples=x_NF.shape[0], n_folds=n_folds, random_state=random_state)
 
-    # TODO loop over folds and compute the train and test error
-    # for the provided estimator
+    train_error_per_fold = np.zeros(n_folds, dtype=np.float32)  
+    test_error_per_fold  = np.zeros(n_folds, dtype=np.float32)
+
+    from sklearn.base import clone
+    for k in range(n_folds):
+        tr, te = tr_ids_K[k], te_ids_K[k]
+
+        est = clone(estimator)               # fresh copy each fold
+        est.fit(x_NF[tr], y_N[tr])           # train on train set
+
+        yhat_tr = est.predict(x_NF[tr])      # predict train
+        yhat_te = est.predict(x_NF[te])      # predict test
+
+        train_error_per_fold[k] = calc_root_mean_squared_error(y_N[tr], yhat_tr)
+        test_error_per_fold[k]  = calc_root_mean_squared_error(y_N[te], yhat_te)
 
     return train_error_per_fold, test_error_per_fold
 
@@ -157,9 +171,27 @@ def make_train_and_test_row_ids_for_n_fold_cv(
     train_ids_per_fold = list()
     test_ids_per_fold = list()
 
-    # TODO obtain a shuffled order of the n_examples
-    # TODO loop over folds, establish which indices belong each fold
-    # TODO assign those indices to the fold's test set
-    # TODO assign remaining indices to the fold's train set
+    if hasattr(random_state, 'rand'):
+        rng = random_state  # already a RandomState object
+    else:
+        rng = np.random.RandomState(int(random_state))  # seed new RNG
+
+    train_ids_per_fold = list()
+    test_ids_per_fold = list()
+
+    perm = rng.permutation(n_examples)  # shuffled indices 0..N-1
+
+    base = n_examples // n_folds        # minimum size of each fold
+    remainder = n_examples % n_folds    # distribute remainder across first folds
+
+    start = 0
+    for k in range(n_folds):
+        fold_size = base + (1 if k < remainder else 0)
+        end = start + fold_size
+        te = perm[start:end]                        # test indices for fold k
+        tr = np.concatenate([perm[:start], perm[end:]])  # rest go to train
+        train_ids_per_fold.append(tr)
+        test_ids_per_fold.append(te)
+        start = end
 
     return train_ids_per_fold, test_ids_per_fold

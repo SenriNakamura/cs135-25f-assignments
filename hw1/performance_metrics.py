@@ -37,4 +37,7 @@ def calc_root_mean_squared_error(y_N, yhat_N):
     yhat_N = np.atleast_1d(yhat_N)
     assert y_N.ndim == 1
     assert y_N.shape == yhat_N.shape
-    return 0.0  # TODO fixme
+    sq_diff = np.square(y_N - yhat_N)
+    mean = np.mean(sq_diff)
+    rmse = np.sqrt(mean)
+    return rmse  

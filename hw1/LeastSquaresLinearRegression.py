@@ -76,11 +76,23 @@ class LeastSquaresLinearRegressor(object):
             \min_{w \in \mathbb{R}^F, b \in \mathbb{R}}
                 \sum_{n=1}^N (y_n - b - \sum_f x_{nf} w_f)^2
         '''      
+        x_NF = np.asarray(x_NF, dtype=np.float64)
+        y_N = np.asarray(y_N, dtype=np.float64)
+        assert x_NF.ndim == 2 and y_N.ndim == 1 and x_NF.shape[0] == y_N.shape[0]
+
         N, F = x_NF.shape
+        ones = np.ones((N, 1), dtype=np.float64)
+        Xtilde = np.hstack([x_NF, ones])             # N x (F+1)
+
+        # Normal equations: (X'ᵀ X') θ = X'ᵀ y
+        A = Xtilde.T @ Xtilde                         # (F+1) x (F+1)
+        bvec = Xtilde.T @ y_N                         # (F+1,)
+        theta = np.linalg.solve(A, bvec)              # (F+1,)
+
+        self.w_F = theta[:-1]                         # (F,)
+        self.b = float(theta[-1])           
         
-        # Hint: Use np.linalg.solve
-        # Using np.linalg.inv may cause issues (see day03 lab) 
-        pass # TODO fixme
+        pass
 
 
     def predict(self, x_MF):
@@ -97,8 +109,9 @@ class LeastSquaresLinearRegressor(object):
         yhat_M : 1D array, size M
             Each value is the predicted scalar for one example
         '''
-        # TODO FIX ME
-        return np.asarray([0.0])
+        x_MF = np.asarray(x_MF, dtype=np.float64)
+        assert x_MF.ndim == 2
+        return self.b + x_MF @ self.w_F
 
 
 
