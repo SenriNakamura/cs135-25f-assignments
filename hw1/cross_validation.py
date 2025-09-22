@@ -101,27 +101,30 @@ def train_models_and_calc_scores_for_n_fold_cv(
 
     '''
    
-    x_NF = np.asarray(x_NF, dtype=np.float32)  
-    y_N = np.asarray(y_N, dtype=np.float32)
+    x_NF = np.asarray(x_NF, dtype=np.float64)
+    y_N  = np.asarray(y_N,  dtype=np.float64)
 
     tr_ids_K, te_ids_K = make_train_and_test_row_ids_for_n_fold_cv(
         n_examples=x_NF.shape[0], n_folds=n_folds, random_state=random_state)
 
-    train_error_per_fold = np.zeros(n_folds, dtype=np.float32)  
-    test_error_per_fold  = np.zeros(n_folds, dtype=np.float32)
+    # float64 as expected by tests
+    train_error_per_fold = np.zeros(n_folds, dtype=np.float64)
+    test_error_per_fold  = np.zeros(n_folds, dtype=np.float64)
 
-    from sklearn.base import clone
+    # from sklearn.base import clone  # <-- remove or leave unused
+
     for k in range(n_folds):
         tr, te = tr_ids_K[k], te_ids_K[k]
 
-        est = clone(estimator)               # fresh copy each fold
-        est.fit(x_NF[tr], y_N[tr])           # train on train set
+        est = estimator                 # <-- use the SAME estimator, no clone
+        est.fit(x_NF[tr], y_N[tr])      # last iteration leaves est fitted
 
-        yhat_tr = est.predict(x_NF[tr])      # predict train
-        yhat_te = est.predict(x_NF[te])      # predict test
+        yhat_tr = est.predict(x_NF[tr])
+        yhat_te = est.predict(x_NF[te])
 
         train_error_per_fold[k] = calc_root_mean_squared_error(y_N[tr], yhat_tr)
         test_error_per_fold[k]  = calc_root_mean_squared_error(y_N[te], yhat_te)
+
 
     return train_error_per_fold, test_error_per_fold
 
