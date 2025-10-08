@@ -98,14 +98,26 @@ def calc_TP_TN_FP_FN(ytrue_N, yhat_N):
     '''
     # Cast input to integer just to be sure we're getting what's expected
     ytrue_N = np.asarray(ytrue_N, dtype=np.int32)
-    yhat_N = np.asarray(yhat_N, dtype=np.int32)
+    yhat_N  = np.asarray(yhat_N,  dtype=np.int32)
 
-    # TODO fix by calculating the number of true pos, true neg, etc.
-    TP = 0
-    TN = 0
-    FP = 0
-    FN = 0
-    return None  # TODO fix me
+    # Initialize counters
+    TP = TN = FP = FN = 0
+
+    # Loop through each element by index
+    if len(ytrue_N) == len(yhat_N):
+        for i in range(len(ytrue_N)):
+            if ytrue_N[i] == 1 and yhat_N[i] == 1:
+                TP += 1
+            elif ytrue_N[i] == 0 and yhat_N[i] == 0:
+                TN += 1
+            elif ytrue_N[i] == 0 and yhat_N[i] == 1:
+                FP += 1
+            elif ytrue_N[i] == 1 and yhat_N[i] == 0:
+                FN += 1
+    else:
+        raise ValueError("ytrue and yhat must have same shape")
+    # Return the 4 results as a tuple
+    return TP, TN, FP, FN
 
 
 def calc_ACC(ytrue_N, yhat_N):
@@ -128,11 +140,13 @@ def calc_ACC(ytrue_N, yhat_N):
     acc : float
         Accuracy = ratio of number correct over total number of examples
     '''
-    # TODO compute accuracy
     # You should *use* your calc_TP_TN_FP_FN function from above
     # Hint: make sure denominator will never be exactly zero
     # by adding a small value like 1e-10
-    return None  # TODO fix me
+    TP, TN, FP, FN = calc_TP_TN_FP_FN(ytrue_N, yhat_N)
+    deno = TP + TN + FP + FN + 1e-10
+    acc = float((TP + TN)/deno)
+    return acc
 
 
 def calc_TPR(ytrue_N, yhat_N):
@@ -157,11 +171,10 @@ def calc_TPR(ytrue_N, yhat_N):
     tpr : float
         TPR = ratio of true positives over total labeled positive
     '''
-    # TODO compute TPR
-    # You should *use* your calc_TP_TN_FP_FN function from above
-    # Hint: make sure denominator will never be exactly zero
-    # by adding a small value like 1e-10
-    return None  # TODO fix me
+    TP, TN, FP, FN = calc_TP_TN_FP_FN(ytrue_N, yhat_N)
+    deno = TP + FN + 1e-10
+    tpr = float((TP)/deno)
+    return tpr
 
 
 def calc_TNR(ytrue_N, yhat_N):
@@ -184,8 +197,7 @@ def calc_TNR(ytrue_N, yhat_N):
     tnr : float
         TNR = ratio of true negatives over total labeled negative
     '''
-    # TODO compute TNR
-    # You should *use* your calc_TP_TN_FP_FN function from above
-    # Hint: make sure denominator will never be exactly zero
-    # by adding a small value like 1e-10
-    return None  # TODO fix me
+    TP, TN, FP, FN = calc_TP_TN_FP_FN(ytrue_N, yhat_N)
+    deno = TN + FP + 1e-10
+    tnr = float((TN)/deno)
+    return tnr
