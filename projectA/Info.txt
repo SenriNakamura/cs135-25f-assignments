@@ -1,0 +1,11 @@
+CSV format for x_*.csv files:
+
+Columns 1-3: common keys that identify each passage. DO NOT use these as features for classification.
+Column 4: 'text' : string, passage of text to be classified
+Column 5: 'char_count' : int, count of characters in text
+Column 6: 'word_count' : int, count of words in text
+Column 7: 'sentence_count': int, count of sentences in text
+Column 8-13: other numerical counts
+Column 14-15: sentiment metrics
+Column 16-23: readability metrics
+Column 24-: other numerical features
