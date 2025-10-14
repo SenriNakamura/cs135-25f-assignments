@@ -326,7 +326,7 @@ class LogisticRegressionGradientDescent():
         zeros_N1 = np.zeros((N, 1))
         sumscoreBCE_N = logsumexp(np.hstack([
             zeros_N1,
-            (minus1_tothe_y * z_N)[:,np.newaxis]]), axis=1)
+            (minus1_tothe_y * s_N)[:,np.newaxis]]), axis=1)
         scoreBCE_loss = np.sum(sumscoreBCE_N) # add over the N examples
 
         # If you want to use base 2 logs in order to get an upper bound
