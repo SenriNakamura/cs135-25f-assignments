@@ -163,13 +163,13 @@ class LogisticRegressionGradientDescent():
                 + " Must call 'fit' before 'predict_proba'."
                 + " Set args carefully to ensure fit did not diverge.")
         N = x_NF.shape[0]
-        w_F = None  # TODO unpack weight coefs from internal attribute wtil_G
-        bias = -1.0  # TODO unpack bias coef from internal attribute wtil_G
-        s_N = np.zeros(N)  # TODO compute weights times x plus b
-        proba1_N = 1.0 * s_N  # TODO use 'logistic_sigmoid' to make probas
-        proba0_N = None      # TODO convert probas of y=1 to probas of y=0
+        w_F = self.wtil_G[:-1]
+        bias = self.wtil_G[-1]
+        s_N = x_NF @ w_F + bias
+        proba1_N = logistic_sigmoid(s_N)
+        proba0_N = 1.0 - proba1_N   
 
-        proba_N2 = 0.5 + np.zeros((N, 2))  # TODO returnval fulfill docstring
+        proba_N2 = np.column_stack([proba0_N, proba1_N])
         return proba_N2
 
     def predict(self, x_NF):
@@ -192,7 +192,7 @@ class LogisticRegressionGradientDescent():
                 + " Set args carefully to ensure fit did not diverge.")
         thr = self.proba_to_binary_threshold  # Unpack threshold
         proba_N2 = self.predict_proba(x_NF)
-        yhat_bool_N = proba_N2.min(axis=1) < thr  # TODO fixme
+        yhat_bool_N = proba_N2[:, 1] >= thr
         yhat_int_N = np.asarray(yhat_bool_N, dtype=np.int32)
         return yhat_int_N
 
@@ -244,15 +244,10 @@ class LogisticRegressionGradientDescent():
             print("Running GD for up to %d iters with step_size %.3g" % (
                 self.num_iterations, self.step_size))
         for iter_id in range(self.num_iterations + 1):
-            if iter_id > 0:
-                # TODO update parameter using self's 'step_size' attribute
-                wtil_G = wtil_G - 0  # <- TODO replace this line
-
-            loss = 4.321                      # TODO call calc_loss
-            grad_G = 1.234 + np.zeros(self.G)  # TODO call calc_grad
+            loss = self.calc_loss(wtil_G, xone_NG, y_N)
+            grad_G = self.calc_grad(wtil_G, xone_NG, y_N)
             avg_L1_norm_of_grad = np.mean(np.abs(grad_G))
 
-            # Print information to stdout
             if self.verbose:
                 if iter_id < 20 or (iter_id % 20 == 0) or (iter_id % 20 == 1):
                     lineA = 'iter %3d/%d  loss % 10.6f' % (
@@ -265,7 +260,7 @@ class LogisticRegressionGradientDescent():
             self.trace_steps.append(iter_id)
             self.trace_loss.append(loss)
             self.trace_grad_L1_norm.append(avg_L1_norm_of_grad)
-            self.trace_param.append(wtil_G)
+            self.trace_param.append(wtil_G.copy())
 
             # Assess divergence and raise ValueError as soon as it happens
             self.raise_error_if_diverging(
@@ -278,6 +273,9 @@ class LogisticRegressionGradientDescent():
             if self.did_converge:
                 break
 
+            if iter_id < self.num_iterations:
+                wtil_G = wtil_G - self.step_size * grad_G
+        
         assert not self.did_diverge
         self.wtil_G = wtil_G
         if self.did_converge:
@@ -358,17 +356,24 @@ class LogisticRegressionGradientDescent():
         G = wtil_G.size
         C = float(self.C)
 
-        grad_L2_wrt_wtil_G = np.zeros(G)  # TODO fixme.
-
-        grad_sumBCE_wrt_wtil_G = np.zeros(G)  # TODO fixme.
+        grad_L2_wrt_wtil_G = np.zeros(G, dtype=float) 
+        grad_L2_wrt_wtil_G[:-1] = wtil_G[:-1] 
+        
+        # s_n = x_n · wtil         (includes bias because xone_NG has final 1's col)
+        s_N = xone_NG @ wtil_G                         # (N,)
+        # t_n = (-1)^y ∈ {+1, -1}
+        t_N = (-1.0) ** np.round(y_N)                  # (N,)
+        # For log(1 + exp(t*s)): d/ds = sigmoid(t*s) * t
+        a_N = t_N * s_N
+        sig_a_N = logistic_sigmoid(a_N)                # (N,)
+        factor_N = sig_a_N * t_N                       # (N,)
+        grad_sumBCE_wrt_wtil_G = xone_NG.T @ factor_N  # (G,)
 
         # Convert to base 2. Already done for you.
         if self.use_base2_for_BCE:
             grad_sumBCE_wrt_wtil_G = grad_sumBCE_wrt_wtil_G / np.log(2)
 
-        # TODO create total gradient array.
-        # Be sure to handle the rescaling by C and N correctly.
-        grad_G = grad_L2_wrt_wtil_G + grad_sumBCE_wrt_wtil_G  # TODO fixme
+        grad_G = grad_L2_wrt_wtil_G / (N * C) + grad_sumBCE_wrt_wtil_G / N
         return grad_G
 
     # Helper methods
