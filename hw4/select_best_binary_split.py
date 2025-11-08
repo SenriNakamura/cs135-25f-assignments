@@ -114,14 +114,38 @@ def select_best_binary_split(x_NF, y_N, MIN_SAMPLES_LEAF=1):
             cost_F[f] = np.inf
             continue
 
-        # TODO Compute total cost at each possible threshold
-        # Your goal is *correctness*, don't prioritize speed or efficiency yet.
-        # Hint: You may need several lines of code, maybe a for loop.
-        # Hint 2: look below at how we assemble the left and right child 
-        left_yhat_V = np.zeros(V) # TODO fixme
-        right_yhat_V = np.ones(V) # TODO fixme
-        left_cost_V = np.zeros(V) # TODO fixme
-        right_cost_V = np.ones(V) # TODO fixme
+        left_yhat_V = np.empty(V, dtype=np.float64)
+        right_yhat_V = np.empty(V, dtype=np.float64)
+        left_cost_V = np.empty(V, dtype=np.float64)
+        right_cost_V = np.empty(V, dtype=np.float64)
+        xf = x_NF[:, f]  # current feature column
+
+        for v in range(V):
+            thresh = possib_xthresh_V[v]
+            left_mask = xf < thresh
+            right_mask = ~left_mask
+
+            y_left = y_N[left_mask]
+            y_right = y_N[right_mask]
+
+            # If either side is empty,
+            # set cost to inf to reject this split.
+            if y_left.size == 0 or y_right.size == 0:
+                left_yhat_V[v] = 0.0
+                right_yhat_V[v] = 0.0
+                left_cost_V[v] = np.inf
+                right_cost_V[v] = np.inf
+                continue
+
+            yl_mean = np.mean(y_left)
+            yr_mean = np.mean(y_right)
+
+            left_yhat_V[v] = yl_mean
+            right_yhat_V[v] = yr_mean
+
+            left_cost_V[v] = np.sum((y_left - yl_mean) ** 2)
+            right_cost_V[v] = np.sum((y_right - yr_mean) ** 2)
+
         total_cost_V = left_cost_V + right_cost_V
 
         # Check if there is any split that improves our cost or predictions.
@@ -133,8 +157,7 @@ def select_best_binary_split(x_NF, y_N, MIN_SAMPLES_LEAF=1):
             cost_F[f] = np.inf
             continue
         
-        # TODO pick out the split candidate that has best cost
-        chosen_v_id = -1 # TODO fixme
+        chosen_v_id = int(np.argmin(total_cost_V))
         cost_F[f] = total_cost_V[chosen_v_id]
         thresh_val_F[f] = possib_xthresh_V[chosen_v_id]
 
@@ -153,9 +176,9 @@ def select_best_binary_split(x_NF, y_N, MIN_SAMPLES_LEAF=1):
     x_LF, y_L = x_NF[left_mask_N], y_N[left_mask_N]
     x_RF, y_R = x_NF[right_mask_N], y_N[right_mask_N]
 
-    # TODO uncomment below to verify your cost computation
-    # left_cost = np.sum(np.square(y_L - np.mean(y_L)))
-    # right_cost = np.sum(np.square(y_R - np.mean(y_R)))
-    # assert np.allclose(cost_F[best_feat_id], left_cost + right_cost)
+    
+    left_cost = np.sum(np.square(y_L - np.mean(y_L)))
+    right_cost = np.sum(np.square(y_R - np.mean(y_R)))
+    assert np.allclose(cost_F[best_feat_id], left_cost + right_cost)
 
     return (best_feat_id, best_thresh_val, x_LF, y_L, x_RF, y_R)
